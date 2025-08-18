@@ -9,3 +9,5 @@ docker run -d --name neo4j-graphiti \
 MATCH (n) DETACH DELETE n;
 
 
+# Try without the resume flag
+hf download ds4sd/docling-layout-old --local-dir ~/.cache/huggingface/hub/models--ds4sd--docling-layout-old/
