@@ -10,3 +10,5 @@ __pycache__/
 files/
 
 logs/
+
+vector_store/

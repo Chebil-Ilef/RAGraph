@@ -43,7 +43,6 @@ class DocumentProcessor:
             pipeline_options.do_table_structure = False 
             pipeline_options.table_structure_options.mode = TableFormerMode.ACCURATE
 
-
             converter = DocumentConverter(
                 format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)}
             )
@@ -51,6 +50,12 @@ class DocumentProcessor:
             result = converter.convert(source=path)
             doc = result.document
             raw_text = doc.export_to_text()
+            
+            # Check if text is empty or mostly whitespace
+            if not raw_text or not raw_text.strip():
+                print("Docling extracted empty text, falling back to pdfplumber...")
+                return self.extract_text_pdfplumber(path)
+            
             with open("logs/docling_extracted_text.txt", "w", encoding="utf-8") as f:
                 f.write(raw_text)
             print("Document conversion completed successfully.")
