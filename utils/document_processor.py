@@ -30,7 +30,8 @@ class DocumentProcessor:
                 api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
             ),
             breakpoint_threshold_type=breakpoint_type,
-            breakpoint_threshold_amount=threshold
+            breakpoint_threshold_amount=threshold,
+            min_chunk_size=300
         )
 
     def extract_text_docling(self, path: str) -> str:
@@ -41,7 +42,8 @@ class DocumentProcessor:
         try:
             pipeline_options = PdfPipelineOptions()
             pipeline_options.do_table_structure = False 
-            pipeline_options.table_structure_options.mode = TableFormerMode.FAST
+            pipeline_options.table_structure_options.mode = TableFormerMode.ACCURATE
+
 
             converter = DocumentConverter(
                 format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)}
@@ -50,6 +52,8 @@ class DocumentProcessor:
             result = converter.convert(source=path)
             doc = result.document
             raw_text = doc.export_to_text()
+            with open("logs/docling_extracted_text.txt", "w", encoding="utf-8") as f:
+                f.write(raw_text)
             print("Document conversion completed successfully.")
             return raw_text
         except Exception as e:
@@ -79,19 +83,19 @@ class DocumentProcessor:
 
 
         combined = "\n".join(all_text)
-        with open("logs/pdfplumber_extracted.txt", "w", encoding="utf-8") as f:
+        with open("logs/pdfplumber_extracted_text.txt", "w", encoding="utf-8") as f:
             f.write(combined)
 
         return combined
 
 
-    def semantic_chunk(self, content: str) -> List[str]:
+    def semantic_chunk(self, content: str, logs="logs/docling_chunks.txt") -> List[str]:
 
         docs = self.text_splitter.create_documents([content])
         chunks = [doc.page_content for doc in docs]
 
         os.makedirs("logs", exist_ok=True)
-        with open("logs/chunks.txt", "w", encoding="utf-8") as f:
+        with open(logs, "w", encoding="utf-8") as f:
             for i, chunk in enumerate(chunks, 1):
                 f.write(f"--- Chunk {i} ---\n{chunk}\n\n")
 
@@ -101,14 +105,17 @@ if __name__ == "__main__":
     processor = DocumentProcessor()
 
     print("Starting document processing...")
-    
-    text = processor.extract_text_docling("files/oneNDA.pdf")
-    # text = processor.extract_text_pdfplumber("files/oneNDA.pdf")
+    path="files/Finance/FINANCE_FINAL-Q2-25-Shareholder-Letter.pdf"
+    text = processor.extract_text_docling(path)
 
-    
     print(f"Extracted text length: {len(text)} characters")
     print("Starting semantic chunking...")
     
     chunks = processor.semantic_chunk(text)
-    print(f"Generated {len(chunks)} chunks. See logs/chunks.txt for details.")
+    print(f"Generated {len(chunks)} chunks. See logs/docling_chunks.txt for details.")
+
+    text = processor.extract_text_pdfplumber(path)
+    chunks = processor.semantic_chunk(text, "logs/pdfplumber_chunks.txt")
+    print(f"Generated {len(chunks)} chunks. See logs/pdfplumber_chunks.txt for details.")
+
 
