@@ -5,6 +5,7 @@ docker run -d --name neo4j-graphiti \
   neo4j:5.26
 
 
+docker start neo4j-graphiti
 
 MATCH (n) DETACH DELETE n;
 
