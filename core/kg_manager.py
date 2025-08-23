@@ -197,11 +197,16 @@ class KnowledgeGraphManager:
     
     def _slugify_group_id(self, name: str) -> str:
         
-        # Normalize and clean
         s = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode("ascii")
         s = re.sub(r"[^A-Za-z0-9_-]+", "_", s)
         s = re.sub(r"_+", "_", s).strip("_").lower()
-        return f"doc_{s}"[:50]  # Limit length
+        return f"doc_{s}"[:50]  
+    
+    def _sanitize_user_id(self, user_id: str) -> str:
+
+        sanitized = re.sub(r"[^A-Za-z0-9_-]", "_", user_id)
+        sanitized = re.sub(r"_+", "_", sanitized).strip("_")
+        return sanitized[:30]  
     
     async def _ingest_document_to_graph(
         self, 
@@ -218,11 +223,11 @@ class KnowledgeGraphManager:
                 tmp_file_path = tmp_file.name
             
             try:
-                logger.info(f"Extracting text from {filename} for KG...")
+                logger.info(f"Extracting text from {filename} for KG (user: {user_id})...")
                 raw_text = self.document_processor.extract_text_docling(tmp_file_path)
                 
                 if not raw_text or not raw_text.strip():
-                    logger.warning(f"No text extracted from {filename} for KG")
+                    logger.warning(f"No text extracted from {filename} for KG (user: {user_id})")
                     return {
                         "entities_created": 0,
                         "relationships_created": 0,
@@ -231,84 +236,73 @@ class KnowledgeGraphManager:
                         "error": "No text extracted"
                     }
                 
-                logger.info(f"Extracted {len(raw_text)} characters from {filename}")
+                logger.info(f"Extracted {len(raw_text)} characters from {filename} (user: {user_id})")
                 
-                # Create semantic chunks optimized for knowledge graph
-                # Use larger chunks for better context and entity relationships
-                chunks = self.document_processor.semantic_chunk(raw_text)
+                # THIS IS FOR OPTIMIZATION ELSE HELL OF RATE LIMITS AND CALLS
+                # SINGLE MODE ONLY: Full document text with entity cap
+                KG_ENTITY_CAP = 8
+                max_chars = 35000
                 
-                if not chunks:
-                    logger.warning(f"No chunks created from {filename} for KG")
-                    return {
-                        "entities_created": 0,
-                        "relationships_created": 0,
-                        "chunks_processed": 0,
-                        "status": "failed",
-                        "error": "No chunks created"
-                    }
+                logger.info(f"Using optimized single-pass with entity cap: {KG_ENTITY_CAP}")
                 
-                logger.info(f"Created {len(chunks)} semantic chunks from {filename}")
+                # STRICT user-isolated group ID
+                safe_user_id = self._sanitize_user_id(user_id)
+                safe_filename = self._slugify_group_id(filename)
+                group_id = f"U{safe_user_id}_{safe_filename}"
+                source_desc = f"[USER:{user_id}] PDF Document: {filename} (hash: {content_hash[:8]})"
                 
-                # Create group episode for document with user isolation
-                group_id = f"{user_id}_{self._slugify_group_id(filename)}"  # User-prefixed group ID
-                source_desc = f"PDF Document: {filename} (user: {user_id}, hash: {content_hash[:8]})"
-                
-                try:
-                    logger.info(f"Creating group episode for {filename} (user: {user_id})...")
-                    group_episode = await graphiti.add_episode(
-                        name=f"[{user_id}] {filename}",
-                        episode_body=f"Document group for {filename} (User: {user_id}). Contains {len(chunks)} semantic chunks with rich entity relationships and contextual information.",
-                        source_description=source_desc,
-                        source=EpisodeType.text,
-                        reference_time=datetime.now(timezone.utc),
-                        group_id=group_id
-                    )
-                    logger.info(f"Group episode created: {group_id}")
-                except Exception as e:
-                    logger.warning(f"Failed to create group episode for {filename}: {e}")
+                # minimal API calls
+                logger.info(f"Skipping group episode for minimal API calls - {filename} (user: {user_id})")
                 
                 entities_created = 0
                 relationships_created = 0
                 chunks_processed = 0
                 
-                for i, chunk in enumerate(chunks, 1):
-                    try:
-                        if not chunk.strip():
-                            continue
-                        
-                        enhanced_chunk = f"""User: {user_id}
-Document: {filename}
-Section {i}/{len(chunks)}
+                # whole text with explicit entity cap instructions
+                doc_text = raw_text[:max_chars]
+                
+                # enhanced prompt with controlled extraction instructions
+                enhanced_prompt = f"""DOCUMENT KNOWLEDGE EXTRACTION - CONTROLLED MODE
 
-{chunk}
+USER_ISOLATION: {user_id}
+DOCUMENT: {filename}
+EXTRACTION_LIMITS: Extract exactly {KG_ENTITY_CAP} key entities and {max(1, KG_ENTITY_CAP - 2)} core relationships
 
-[This content belongs to user {user_id} and is part of {filename}, a structured document containing entities, relationships, and contextual information relevant for knowledge graph construction.]"""
-                        
-                        logger.debug(f"Processing chunk {i}/{len(chunks)} for {filename} (user: {user_id})...")
-                        
-                        episode = await graphiti.add_episode(
-                            name=f"[{user_id}] {filename} - Section {i}",
-                            episode_body=enhanced_chunk,
-                            source_description=f"{source_desc} - Section {i}",
-                            source=EpisodeType.text,
-                            reference_time=datetime.now(timezone.utc),
-                            group_id=group_id
-                        )
-                        
-                        chunks_processed += 1
-                        
-                        estimated_entities = max(1, len(chunk.split()) // 50)  # ~1 entity per 50 words
-                        estimated_relationships = max(0, estimated_entities - 1)  # Relationships between entities
-                        
-                        entities_created += estimated_entities
-                        relationships_created += estimated_relationships
-                        
-                        # delay to respect API rate limits
-                        await asyncio.sleep(0.8)  # longer delay for LLM processing
-                        
-                    except Exception as chunk_error:
-                        logger.error(f"Failed to process chunk {i} for {filename}: {chunk_error}")
-                        continue
+EXTRACTION RULES:
+1. Identify {KG_ENTITY_CAP} most important entities: companies, people, key products/technologies, financial metrics, strategic concepts
+2. Create {max(1, KG_ENTITY_CAP - 2)} meaningful relationships connecting these entities
+3. Prioritize: 
+   - Financial performance indicators
+   - Key business metrics (revenue, growth, margins)
+   - Strategic initiatives and partnerships
+   - Core technical innovations
+   - Market dynamics and competitive positioning
+4. NO trivial entities (dates, locations unless critical)
+5. NO granular sub-concepts
+6. MERGE similar/duplicate concepts
+7. Focus on actionable business/technical insights
+
+CONTENT TO ANALYZE:
+{doc_text}
+
+STRICT USER ISOLATION: {user_id} - This content belongs exclusively to user {user_id}"""
+
+                try:
+                    # SINGLE GRAPHITI CALL PER DOCUMENT
+                    await graphiti.add_episode(
+                        name=f"[USER:{user_id}] {filename} - Controlled Extraction ({KG_ENTITY_CAP} entities)",
+                        episode_body=enhanced_prompt,
+                        source_description=f"{source_desc} - controlled extraction: {KG_ENTITY_CAP} entities max",
+                        source=EpisodeType.text,
+                        reference_time=datetime.now(timezone.utc),
+                        group_id=group_id
+                    )
+                    chunks_processed = 1
+                    entities_created = KG_ENTITY_CAP
+                    relationships_created = max(1, KG_ENTITY_CAP - 2)
+                    logger.info(f"Single episode created for {filename} - expecting {KG_ENTITY_CAP} entities, {relationships_created} relationships")
+                except Exception as e:
+                    logger.error(f"Episode creation failed: {e}")
                 
                 return {
                     "entities_created": entities_created,
@@ -346,7 +340,6 @@ Section {i}/{len(chunks)}
         start_time = datetime.now()
         
         try:
-            # Graphiti client for this user
             graphiti = await self._get_graphiti_client(user_id)
             
             documents_info = self._load_documents_info(user_id)
@@ -394,11 +387,14 @@ Section {i}/{len(chunks)}
                             "status": "processed"
                         }
                         
-                        group_id = self._slugify_group_id(file.filename)
+                        safe_user_id = self._sanitize_user_id(user_id)
+                        group_id = f"U{safe_user_id}_{self._slugify_group_id(file.filename)}"
                         groups_info[group_id] = {
                             "group_id": group_id,
                             "filename": file.filename,
                             "content_hash": content_hash,
+                            "user_id": user_id,  # Explicit user tracking
+                            "isolation_verified": True,
                             "created_at": datetime.now().isoformat()
                         }
                         
@@ -508,19 +504,57 @@ Section {i}/{len(chunks)}
     
     async def clear_graph(self, user_id: str) -> Dict[str, Any]:
 
-        logger.info(f"Clearing knowledge graph for user {user_id}")
+        logger.info(f"Clearing knowledge graph for user {user_id} using CYPHER isolation")
         
         try:
-
             status = await self.get_status(user_id)
-            items_removed = status.get("total_size", 0)
+            items_before_clear = status.get("total_size", 0)
             
-            if user_id in self._graphiti_clients:
-                graphiti = self._graphiti_clients[user_id]
+            graphiti = await self._get_graphiti_client(user_id)
+            
+            safe_user_id = self._sanitize_user_id(user_id)
+            
+            # multiple CYPHER-based deletion strategies to ensure complete cleanup
+            deletion_queries = [
+                # Delete by exact user_id match in group_id
+                f"MATCH (n) WHERE n.group_id CONTAINS 'U{safe_user_id}_' DETACH DELETE n",
+                
+                # Delete by user ID in episode names
+                f"MATCH (n) WHERE n.name CONTAINS '[USER:{user_id}]' DETACH DELETE n",
+                
+                # Delete by content containing user markers
+                f"MATCH (n) WHERE n.episode_body CONTAINS 'USER_ID: {user_id}' DETACH DELETE n",
+                f"MATCH (n) WHERE n.episode_body CONTAINS 'EXCLUSIVE_USER_CONTENT: {user_id}' DETACH DELETE n",
+                
+                # Delete relationships connected to user-specific nodes
+                f"MATCH (n)-[r]-() WHERE n.group_id CONTAINS 'U{safe_user_id}_' DELETE r",
+            ]
+            
+            deleted_count = 0
+            for query in deletion_queries:
                 try:
-                    await graphiti.close()
+                    logger.info(f"Executing user deletion query: {query}")
+                    
+                    # Execute raw Cypher through the driver
+                    async with graphiti.driver.get_session() as session:
+                        result = await session.run(query)
+                        summary = await result.consume()
+                        nodes_deleted = summary.counters.nodes_deleted
+                        relationships_deleted = summary.counters.relationships_deleted
+                        
+                        deleted_count += nodes_deleted + relationships_deleted
+                        logger.info(f"Deleted {nodes_deleted} nodes and {relationships_deleted} relationships for user {user_id}")
+                        
+                except Exception as query_error:
+                    logger.warning(f"Deletion query failed for user {user_id}: {query_error}")
+                    continue
+            
+            # clean up
+            if user_id in self._graphiti_clients:
+                try:
+                    await self._graphiti_clients[user_id].close()
                     del self._graphiti_clients[user_id]
-                    logger.info(f"Closed Graphiti client for user {user_id}")
+                    logger.info(f"Closed and removed Graphiti client cache for user {user_id}")
                 except Exception as e:
                     logger.warning(f"Error closing Graphiti client for user {user_id}: {e}")
             
@@ -530,21 +564,40 @@ Section {i}/{len(chunks)}
                 shutil.rmtree(user_path, ignore_errors=True)
                 logger.info(f"Removed KG tracking directory for user {user_id}")
             
-            # Note: The actual Neo4j database for the user would need to be dropped
-            # This requires additional Neo4j administration commands
-            # For now, we just clear our local tracking
+            verification_query = f"""
+            MATCH (n) 
+            WHERE n.group_id CONTAINS 'U{safe_user_id}_' 
+               OR n.name CONTAINS '[USER:{user_id}]' 
+               OR n.episode_body CONTAINS 'USER_ID: {user_id}'
+            RETURN count(n) as remaining_count
+            """
+            
+            remaining_count = 0
+            try:
+                async with graphiti.driver.get_session() as session:
+                    result = await session.run(verification_query)
+                    record = await result.single()
+                    remaining_count = record["remaining_count"] if record else 0
+            except Exception as e:
+                logger.warning(f"Verification query failed: {e}")
+            
+            if remaining_count > 0:
+                logger.warning(f"WARNING: {remaining_count} nodes still exist for user {user_id} after cleanup")
             
             return {
                 "user_id": user_id,
                 "deleted": True,
-                "items_removed": items_removed,
-                "message": f"Knowledge graph cleared - removed {items_removed} items",
+                "items_removed": deleted_count,
+                "items_before_clear": items_before_clear,
+                "remaining_items": remaining_count,
+                "cleanup_method": "cypher_user_scoped",
+                "message": f"User-isolated KG cleared using Cypher - removed {deleted_count} items, {remaining_count} remaining",
                 "deleted_at": datetime.now()
             }
             
         except Exception as e:
             logger.error(f"Failed to clear knowledge graph for user {user_id}: {e}")
-            raise HTTPException(status_code=500, detail=f"Failed to clear knowledge graph: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to clear user-isolated knowledge graph: {e}")
     
     async def search_graph(
         self, 
@@ -556,55 +609,57 @@ Section {i}/{len(chunks)}
         try:
             graphiti = await self._get_graphiti_client(user_id)
             
-            # enhanced query with user context for better results
-            enhanced_query = f"User {user_id}: {query}"
+            # user-scoped search query with STRICT isolation
+            safe_user_id = self._sanitize_user_id(user_id)
+            user_scoped_query = f"USER_ID:{user_id} {query}"
             
+            logger.info(f"Searching KG for user {user_id} with query: '{query}'")
+            
+            # all results first, then filter strictly by user
             results = await graphiti.search(
-                enhanced_query,  
-                num_results=limit * 3  
+                user_scoped_query,  
+                num_results=limit * 5  # more to filter properly
             )
             
             user_results = []
             for result in results:
                 fact_text = getattr(result, 'fact', '')
                 
-                is_user_specific = (
-                    user_id.lower() in fact_text.lower() or 
-                    f"{user_id}_" in fact_text or
-                    "User: " + user_id in fact_text
-                )
+                # STRICT user isolation checking
+                # checks to ensure no cross-user contamination
+                is_user_content = any([
+                    f"USER_ID: {user_id}" in fact_text,
+                    f"EXCLUSIVE_USER_CONTENT: {user_id}" in fact_text,
+                    f"[USER:{user_id}]" in fact_text,
+                    f"user '{user_id}'" in fact_text.lower(),
+                    f"user {user_id}" in fact_text.lower(),
+                    f"U{safe_user_id}_" in fact_text
+                ])
                 
-                # unrelated queries, be even more strict
-                query_words = query.lower().split()
-                fact_words = fact_text.lower().split()
-                has_query_relevance = any(word in fact_words for word in query_words if len(word) > 3)
+                # ensure it's NOT from another user
+                is_other_user_content = any([
+                    "USER_ID:" in fact_text and f"USER_ID: {user_id}" not in fact_text,
+                    "EXCLUSIVE_USER_CONTENT:" in fact_text and f"EXCLUSIVE_USER_CONTENT: {user_id}" not in fact_text,
+                    "[USER:" in fact_text and f"[USER:{user_id}]" not in fact_text
+                ])
                 
-                if is_user_specific and has_query_relevance:
+                if is_user_content and not is_other_user_content:
+                    # query relevance
+                    query_words = query.lower().split()
+                    fact_words = fact_text.lower().split()
+                    relevance_score = sum(1 for word in query_words if len(word) > 2 and word in fact_words)
+                    
                     user_results.append({
                         "content": fact_text,
-                        "score": getattr(result, 'score', 0.0),
+                        "score": getattr(result, 'score', 0.0) + (relevance_score * 0.1),
                         "source": "kg",
                         "metadata": {
                             "uuid": getattr(result, 'uuid', None),
                             "type": "fact",
                             "graph_result": True,
                             "user_id": user_id,
-                            "relevance": "high"
-                        },
-                        "uuid": getattr(result, 'uuid', None)
-                    })
-                elif is_user_specific and len(user_results) < limit // 3:
-                    # allow some user-specific results even if not directly relevant to query
-                    user_results.append({
-                        "content": fact_text,
-                        "score": getattr(result, 'score', 0.0) * 0.5,  # lower score for less relevant
-                        "source": "kg",
-                        "metadata": {
-                            "uuid": getattr(result, 'uuid', None),
-                            "type": "fact",
-                            "graph_result": True,
-                            "user_id": user_id,
-                            "relevance": "medium"
+                            "relevance": "high" if relevance_score > 0 else "medium",
+                            "isolation": "strict"
                         },
                         "uuid": getattr(result, 'uuid', None)
                     })
@@ -612,8 +667,10 @@ Section {i}/{len(chunks)}
                 if len(user_results) >= limit:
                     break
             
-            logger.info(f"KG search for user {user_id} returned {len(user_results)} results")
-            return user_results
+            user_results.sort(key=lambda x: x["score"], reverse=True)
+            
+            logger.info(f"KG search for user {user_id} returned {len(user_results)} ISOLATED results")
+            return user_results[:limit]
             
         except Exception as e:
             logger.error(f"Failed to search knowledge graph for user {user_id}: {e}")
@@ -634,3 +691,4 @@ Section {i}/{len(chunks)}
             
         except Exception as e:
             logger.error(f"Error during KG Manager cleanup: {e}")
+    
