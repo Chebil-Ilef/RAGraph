@@ -105,7 +105,7 @@ async def main():
             logger.warning("No PDF files found in specified folders.")
             return
 
-        # Use sequential ingestion to avoid API rate limits
+        # sequential ingestion to avoid API rate limits
         ingestion_results = await ingest_documents(graphiti, pdf_files, max_concurrency=1)
         for result in ingestion_results:
             if result['status'] == 'success':

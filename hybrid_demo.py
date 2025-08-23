@@ -71,7 +71,7 @@ async def main():
         azure_endpoint=emb_endpoint
     )
 
-    # Setup Graphiti components
+    # Graphiti components
     llm_config = LLMConfig(
         model=chat_deployment,
         small_model=chat_deployment,
@@ -95,7 +95,7 @@ async def main():
         client=llm_client_azure
     )
 
-    # Initialize Graphiti
+    # initialize Graphiti
     graphiti = Graphiti(
         config["neo4j"]["uri"],
         config["neo4j"]["user"],

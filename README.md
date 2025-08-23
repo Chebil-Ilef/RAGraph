@@ -12,3 +12,19 @@ MATCH (n) DETACH DELETE n;
 
 # Try without the resume flag
 hf download ds4sd/docling-layout-old --local-dir ~/.cache/huggingface/hub/models--ds4sd--docling-layout-old/
+
+
+nohup python -m uvicorn api.main:app --host 0.0.0.0 --port 8000
+
+
+
+# File Upload Methods
+POST /kg/build              # Upload files for KG
+POST /vectordb/build        # Upload files for Vector DB
+
+# File Path Methods  
+POST /kg/build-paths        # Process server files for KG
+POST /vectordb/build-paths  # Process server files for Vector DB
+
+# Other endpoints unchanged
+POST /kg/status, /kg/clear, /vectordb/status, /vectordb/clear, /query
