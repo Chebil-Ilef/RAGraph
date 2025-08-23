@@ -535,8 +535,7 @@ STRICT USER ISOLATION: {user_id} - This content belongs exclusively to user {use
                 try:
                     logger.info(f"Executing user deletion query: {query}")
                     
-                    # Execute raw Cypher through the driver
-                    async with graphiti.driver.get_session() as session:
+                    async with graphiti.driver.session() as session:
                         result = await session.run(query)
                         summary = await result.consume()
                         nodes_deleted = summary.counters.nodes_deleted
@@ -574,7 +573,8 @@ STRICT USER ISOLATION: {user_id} - This content belongs exclusively to user {use
             
             remaining_count = 0
             try:
-                async with graphiti.driver.get_session() as session:
+                # Use async session properly
+                async with graphiti.driver.session() as session:
                     result = await session.run(verification_query)
                     record = await result.single()
                     remaining_count = record["remaining_count"] if record else 0
