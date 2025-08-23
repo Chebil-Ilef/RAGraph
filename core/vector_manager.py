@@ -11,6 +11,7 @@ import numpy as np
 from fastapi import UploadFile, HTTPException
 from utils.document_processor import DocumentProcessor, reset_docling_converter, clear_gpu_memory
 from utils.embeddings import get_embedding_manager
+from utils.document_cache import SystemCache
 from config.embedding_config import EMBEDDING_MODEL, EMBEDDING_CACHE_DIR, USE_GPU
 import shutil
 from dotenv import load_dotenv
@@ -24,6 +25,9 @@ class VectorManager:
     def __init__(self, base_path: str = "vector_store"):
         self.base_path = base_path
         self.document_processor = DocumentProcessor()
+        
+        # Initialize shared document cache for vector system
+        self.cache_manager = SystemCache("VECTOR")
         
         # Initialize local embedding manager
         self.embedding_manager = get_embedding_manager(
@@ -217,11 +221,10 @@ class VectorManager:
                 logger.info(f"Processing file: {file.filename}")
                 
                 content = await file.read()
-                content_hash = self._compute_file_hash(content)
+                content_hash = self.cache_manager.doc_cache.compute_file_hash(content)
                 
                 # check if already processed (unless force rebuild)
-                if not force_rebuild and content_hash in documents_info:
-                    logger.info(f"File {file.filename} already processed (hash: {content_hash[:8]}...)")
+                if self.cache_manager.is_processed(documents_info, content_hash, force_rebuild):
                     processed_files += 1
                     continue
                 
@@ -246,13 +249,17 @@ class VectorManager:
                     })
                     new_chunks_count += 1
                 
-                documents_info[content_hash] = {
-                    "filename": file.filename,
-                    "size_bytes": len(content),
-                    "chunks_count": len(text_chunks),
-                    "processed_at": datetime.now().isoformat(),
-                    "status": "processed"
-                }
+                # Mark document as processed using cache manager
+                self.cache_manager.mark_processed(
+                    documents_info,
+                    file.filename,
+                    content,
+                    {
+                        "chunks_count": len(text_chunks),
+                        "vector_dimension": self.dimension
+                    },
+                    status="processed"
+                )
                 
                 processed_files += 1
                 

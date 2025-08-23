@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from core.vector_manager import VectorManager
+from core.kg_manager import KnowledgeGraphManager
+from core.hybrid_search import HybridSearch
 
 logger = logging.getLogger(__name__)
 
@@ -219,9 +221,9 @@ class MockHybridSearch:
 
 async def get_kg_manager(
     neo4j_conn: Neo4jConnection = Depends(get_neo4j_connection)
-) -> MockKGManager:
-
-    return MockKGManager(neo4j_conn)
+) -> KnowledgeGraphManager:
+    """Get KnowledgeGraphManager instance with proper Neo4j connection."""
+    return KnowledgeGraphManager(base_path="kg_store")
 
 async def get_vector_manager(
     faiss_conn: FAISSConnection = Depends(get_faiss_connection)
@@ -229,6 +231,9 @@ async def get_vector_manager(
 
     return VectorManager(base_path=faiss_conn.vector_store_path)
 
-async def get_hybrid_search() -> MockHybridSearch:
-
-    return MockHybridSearch()
+async def get_hybrid_search(
+    vector_manager: VectorManager = Depends(get_vector_manager),
+    kg_manager: KnowledgeGraphManager = Depends(get_kg_manager)
+) -> HybridSearch:
+    """Get HybridSearch instance with both managers."""
+    return HybridSearch(vector_manager, kg_manager)

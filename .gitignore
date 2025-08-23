@@ -11,6 +11,8 @@ logs/
 
 vector_store/
 
+kg_store/
+
 nohup.out
 
 tests/

@@ -270,7 +270,7 @@ async def hybrid_query(
         raise HTTPException(status_code=400, detail="User ID is required")
 
     user_id = request.user_id
-    logger.info(f"🔍 Hybrid query for user {user_id}: {request.query}")
+    logger.info(f"Hybrid query for user {user_id}: {request.query}")
     
     try:
         result = await hybrid_search.query(
