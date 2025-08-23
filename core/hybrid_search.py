@@ -110,10 +110,7 @@ class HybridSearch:
     async def _search_vector(self, user_id: str, query: str, limit: int) -> List[Dict[str, Any]]:
 
         try:
-            # This would need to be implemented in VectorManager
-            # For now, return empty results
-            logger.debug(f"Vector search not yet implemented for user {user_id}")
-            return []
+            return await self.vector_manager.search_vector_store(user_id, query, limit)
             
         except Exception as e:
             logger.error(f"Vector search error for user {user_id}: {e}")
@@ -181,7 +178,6 @@ class HybridSearch:
             "vector_results": 0,
             "results": [],
             "processing_time_seconds": 0.0,
-            "fallback_used": None,
             "message": message
         }
     

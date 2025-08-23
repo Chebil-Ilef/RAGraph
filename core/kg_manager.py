@@ -556,27 +556,61 @@ Section {i}/{len(chunks)}
         try:
             graphiti = await self._get_graphiti_client(user_id)
             
+            # enhanced query with user context for better results
+            enhanced_query = f"User {user_id}: {query}"
+            
             results = await graphiti.search(
-                query,  
-                num_results=limit
+                enhanced_query,  
+                num_results=limit * 3  
             )
             
             user_results = []
             for result in results:
                 fact_text = getattr(result, 'fact', '')
                 
-                user_results.append({
-                    "content": fact_text,
-                    "score": getattr(result, 'score', 0.0),
-                    "source": "kg",
-                    "metadata": {
-                        "uuid": getattr(result, 'uuid', None),
-                        "type": "fact",
-                        "graph_result": True,
-                        "user_id": user_id
-                    },
-                    "uuid": getattr(result, 'uuid', None)
-                })
+                is_user_specific = (
+                    user_id.lower() in fact_text.lower() or 
+                    f"{user_id}_" in fact_text or
+                    "User: " + user_id in fact_text
+                )
+                
+                # unrelated queries, be even more strict
+                query_words = query.lower().split()
+                fact_words = fact_text.lower().split()
+                has_query_relevance = any(word in fact_words for word in query_words if len(word) > 3)
+                
+                if is_user_specific and has_query_relevance:
+                    user_results.append({
+                        "content": fact_text,
+                        "score": getattr(result, 'score', 0.0),
+                        "source": "kg",
+                        "metadata": {
+                            "uuid": getattr(result, 'uuid', None),
+                            "type": "fact",
+                            "graph_result": True,
+                            "user_id": user_id,
+                            "relevance": "high"
+                        },
+                        "uuid": getattr(result, 'uuid', None)
+                    })
+                elif is_user_specific and len(user_results) < limit // 3:
+                    # allow some user-specific results even if not directly relevant to query
+                    user_results.append({
+                        "content": fact_text,
+                        "score": getattr(result, 'score', 0.0) * 0.5,  # lower score for less relevant
+                        "source": "kg",
+                        "metadata": {
+                            "uuid": getattr(result, 'uuid', None),
+                            "type": "fact",
+                            "graph_result": True,
+                            "user_id": user_id,
+                            "relevance": "medium"
+                        },
+                        "uuid": getattr(result, 'uuid', None)
+                    })
+                
+                if len(user_results) >= limit:
+                    break
             
             logger.info(f"KG search for user {user_id} returned {len(user_results)} results")
             return user_results

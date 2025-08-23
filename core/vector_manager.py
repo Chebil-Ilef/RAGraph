@@ -249,7 +249,6 @@ class VectorManager:
                     })
                     new_chunks_count += 1
                 
-                # Mark document as processed using cache manager
                 self.cache_manager.mark_processed(
                     documents_info,
                     file.filename,
@@ -403,8 +402,53 @@ class VectorManager:
             logger.error(f"Failed to clear vector store for user {user_id}: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to clear vector store: {e}")
     
+    async def search_vector_store(self, user_id: str, query: str, limit: int = 10) -> List[Dict[str, Any]]:
+
+        try:
+            index, metadata = self._load_user_index(user_id)
+            
+            if index is None or not metadata:
+                logger.warning(f"No vector store found for user {user_id}")
+                return []
+            
+            # embedding for the query
+            query_embedding = self.embedding_manager.embed_single(query)
+            
+            # similarity search
+            scores, indices = index.search(
+                np.array([query_embedding], dtype=np.float32), 
+                min(limit, index.ntotal)
+            )
+            
+            results = []
+            for i, (score, idx) in enumerate(zip(scores[0], indices[0])):
+                if idx >= len(metadata):
+                    continue
+                    
+                chunk_metadata = metadata[idx]
+                results.append({
+                    "content": chunk_metadata.get("text", ""),
+                    "score": float(score),
+                    "source": "vector", 
+                    "metadata": {
+                        "source_file": chunk_metadata.get("source_file"),
+                        "chunk_index": chunk_metadata.get("chunk_index"),
+                        "content_hash": chunk_metadata.get("content_hash"),
+                        "processed_at": chunk_metadata.get("processed_at"),
+                        "user_id": user_id
+                    },
+                    "uuid": None  # Vector store doesn't have UUIDs like KG
+                })
+            
+            logger.info(f"Vector search for user {user_id} returned {len(results)} results")
+            return results
+            
+        except Exception as e:
+            logger.error(f"Vector search failed for user {user_id}: {e}")
+            return []
+    
     def cleanup_memory(self):
-        """Cleanup GPU memory and reset docling converter if needed."""
+
         try:
             logger.info("Performing memory cleanup...")
             clear_gpu_memory()

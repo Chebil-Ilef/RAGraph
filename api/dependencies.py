@@ -215,7 +215,6 @@ class MockHybridSearch:
             "vector_results": 1,
             "results": results[:limit],
             "processing_time_seconds": 0.8,
-            "fallback_used": None,
             "message": "Mock hybrid search completed"
         }
 
