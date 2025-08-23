@@ -609,25 +609,25 @@ STRICT USER ISOLATION: {user_id} - This content belongs exclusively to user {use
         try:
             graphiti = await self._get_graphiti_client(user_id)
             
-            # user-scoped search query with STRICT isolation
             safe_user_id = self._sanitize_user_id(user_id)
-            user_scoped_query = f"USER_ID:{user_id} {query}"
             
             logger.info(f"Searching KG for user {user_id} with query: '{query}'")
             
-            # all results first, then filter strictly by user
             results = await graphiti.search(
-                user_scoped_query,  
-                num_results=limit * 5  # more to filter properly
+                query,  
+                num_results=limit * 10  # more results to ensure we have enough after filtering
             )
             
             user_results = []
+            result_count = len(results) if results else 0
+            logger.info(f"Raw search returned {result_count} results before user filtering")
+            
             for result in results:
                 fact_text = getattr(result, 'fact', '')
+                group_id = getattr(result, 'group_id', '')
                 
-                # STRICT user isolation checking
-                # checks to ensure no cross-user contamination
-                is_user_content = any([
+     
+                has_explicit_user_marker = any([
                     f"USER_ID: {user_id}" in fact_text,
                     f"EXCLUSIVE_USER_CONTENT: {user_id}" in fact_text,
                     f"[USER:{user_id}]" in fact_text,
@@ -636,14 +636,24 @@ STRICT USER ISOLATION: {user_id} - This content belongs exclusively to user {use
                     f"U{safe_user_id}_" in fact_text
                 ])
                 
-                # ensure it's NOT from another user
-                is_other_user_content = any([
+                has_other_user_marker = any([
                     "USER_ID:" in fact_text and f"USER_ID: {user_id}" not in fact_text,
                     "EXCLUSIVE_USER_CONTENT:" in fact_text and f"EXCLUSIVE_USER_CONTENT: {user_id}" not in fact_text,
                     "[USER:" in fact_text and f"[USER:{user_id}]" not in fact_text
                 ])
                 
-                if is_user_content and not is_other_user_content:
+                group_id = getattr(result, 'group_id', '') or ''
+                belongs_to_user_group = f"U{safe_user_id}_" in group_id if group_id else False
+                
+                # Accept the result if:
+                # 1. It has this user's explicit markers, or
+                # 2. It belongs to a group created by this user, or
+                # 3. It doesn't have any user markers at all (might be general content)
+                is_valid_for_user = (has_explicit_user_marker or 
+                                     belongs_to_user_group or 
+                                     (not has_other_user_marker and not has_explicit_user_marker))
+                
+                if is_valid_for_user:
                     # query relevance
                     query_words = query.lower().split()
                     fact_words = fact_text.lower().split()
@@ -663,6 +673,12 @@ STRICT USER ISOLATION: {user_id} - This content belongs exclusively to user {use
                         },
                         "uuid": getattr(result, 'uuid', None)
                     })
+                
+                else:
+                    logger.debug(f"Filtered out result: has_explicit_user_marker={has_explicit_user_marker}, " +
+                               f"has_other_user_marker={has_other_user_marker}, " +
+                               f"belongs_to_user_group={belongs_to_user_group}, " +
+                               f"group_id={group_id}")
                 
                 if len(user_results) >= limit:
                     break
