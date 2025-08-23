@@ -1,0 +1,439 @@
+{
+  "info": {
+    "name": "HUGO API Collection",
+    "description": "Hybrid Graph-RAG system API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "hugo-api-collection",
+    "version": "1.0.0"
+  },
+  "item": [
+    {
+      "name": "Health & System",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Check system health including Neo4j and FAISS connections"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Knowledge Graph",
+      "item": [
+        {
+          "name": "Build KG from Files",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "user_id",
+                  "value": "test_user_123",
+                  "type": "text",
+                  "description": "User identifier"
+                },
+                {
+                  "key": "force_rebuild",
+                  "value": "false",
+                  "type": "text",
+                  "description": "Force rebuild flag"
+                },
+                {
+                  "key": "files",
+                  "type": "file",
+                  "description": "PDF files to process"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/kg/build",
+              "host": ["{{base_url}}"],
+              "path": ["kg", "build"]
+            },
+            "description": "Build knowledge graph from uploaded PDF files"
+          },
+          "response": []
+        },
+        {
+          "name": "Get KG Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"test_user_123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/kg/status",
+              "host": ["{{base_url}}"],
+              "path": ["kg", "status"]
+            },
+            "description": "Get knowledge graph status for a user"
+          },
+          "response": []
+        },
+        {
+          "name": "Clear KG",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"test_user_123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/kg/clear",
+              "host": ["{{base_url}}"],
+              "path": ["kg", "clear"]
+            },
+            "description": "Clear all knowledge graph data for a user"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Vector Database",
+      "item": [
+        {
+          "name": "Build Vector DB from Files",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "user_id",
+                  "value": "test_user_123",
+                  "type": "text",
+                  "description": "User identifier"
+                },
+                {
+                  "key": "force_rebuild",
+                  "value": "false",
+                  "type": "text",
+                  "description": "Force rebuild flag"
+                },
+                {
+                  "key": "files",
+                  "type": "file",
+                  "description": "PDF files to process"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/vectordb/build",
+              "host": ["{{base_url}}"],
+              "path": ["vectordb", "build"]
+            },
+            "description": "Build vector database from uploaded PDF files"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Vector DB Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"test_user_123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/vectordb/status",
+              "host": ["{{base_url}}"],
+              "path": ["vectordb", "status"]
+            },
+            "description": "Get vector database status for a user"
+          },
+          "response": []
+        },
+        {
+          "name": "Clear Vector DB",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"test_user_123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/vectordb/clear",
+              "host": ["{{base_url}}"],
+              "path": ["vectordb", "clear"]
+            },
+            "description": "Clear all vector database data for a user"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Query & Search",
+      "item": [
+        {
+          "name": "Hybrid Query - Full Search",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"test_user_123\",\n  \"query\": \"What are the main findings about artificial intelligence?\",\n  \"limit\": 10,\n  \"include_kg\": true,\n  \"include_vector\": true,\n  \"rerank\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/query",
+              "host": ["{{base_url}}"],
+              "path": ["query"]
+            },
+            "description": "Perform hybrid search across both KG and vector database"
+          },
+          "response": []
+        },
+        {
+          "name": "KG Only Query",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"test_user_123\",\n  \"query\": \"Show me entities related to machine learning\",\n  \"limit\": 5,\n  \"include_kg\": true,\n  \"include_vector\": false,\n  \"rerank\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/query",
+              "host": ["{{base_url}}"],
+              "path": ["query"]
+            },
+            "description": "Search only in knowledge graph"
+          },
+          "response": []
+        },
+        {
+          "name": "Vector Only Query",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"test_user_123\",\n  \"query\": \"Find similar document chunks about neural networks\",\n  \"limit\": 15,\n  \"include_kg\": false,\n  \"include_vector\": true,\n  \"rerank\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/query",
+              "host": ["{{base_url}}"],
+              "path": ["query"]
+            },
+            "description": "Search only in vector database"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Example Workflows",
+      "item": [
+        {
+          "name": "Complete Workflow Test",
+          "item": [
+            {
+              "name": "1. Check Health",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/health",
+                  "host": ["{{base_url}}"],
+                  "path": ["health"]
+                }
+              }
+            },
+            {
+              "name": "2. Build KG",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "user_id",
+                      "value": "workflow_user",
+                      "type": "text"
+                    },
+                    {
+                      "key": "force_rebuild",
+                      "value": "true",
+                      "type": "text"
+                    },
+                    {
+                      "key": "files",
+                      "type": "file"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/kg/build",
+                  "host": ["{{base_url}}"],
+                  "path": ["kg", "build"]
+                }
+              }
+            },
+            {
+              "name": "3. Build Vector DB",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "user_id",
+                      "value": "workflow_user",
+                      "type": "text"
+                    },
+                    {
+                      "key": "force_rebuild",
+                      "value": "true",
+                      "type": "text"
+                    },
+                    {
+                      "key": "files",
+                      "type": "file"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/vectordb/build",
+                  "host": ["{{base_url}}"],
+                  "path": ["vectordb", "build"]
+                }
+              }
+            },
+            {
+              "name": "4. Check KG Status",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"user_id\": \"workflow_user\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/kg/status",
+                  "host": ["{{base_url}}"],
+                  "path": ["kg", "status"]
+                }
+              }
+            },
+            {
+              "name": "5. Check Vector Status",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"user_id\": \"workflow_user\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/vectordb/status",
+                  "host": ["{{base_url}}"],
+                  "path": ["vectordb", "status"]
+                }
+              }
+            },
+            {
+              "name": "6. Perform Query",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"user_id\": \"workflow_user\",\n  \"query\": \"What are the key insights from the uploaded documents?\",\n  \"limit\": 10,\n  \"include_kg\": true,\n  \"include_vector\": true,\n  \"rerank\": true\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/query",
+                  "host": ["{{base_url}}"],
+                  "path": ["query"]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "description": "Base URL for HUGO API"
+    },
+    {
+      "key": "user_id",
+      "value": "test_user_123",
+      "description": "Default test user ID"
+    }
+  ],
+  "auth": null,
+  "event": []
+}
