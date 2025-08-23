@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 import logging
 import uvicorn
-
 from .models import (
     BuildGraphResponse,
     BuildVectorResponse,
@@ -56,14 +55,12 @@ async def shutdown_event():
 @app.get("/health")
 async def health_check(
     neo4j_conn = Depends(get_neo4j_connection),
-    faiss_conn = Depends(get_faiss_connection)
 ):
     health_status = {
         "status": "healthy",
         "service": "HUGO API",
         "checks": {
             "neo4j": {"status": "unknown", "details": ""},
-            "faiss": {"status": "unknown", "details": ""}
         }
     }
     
@@ -82,24 +79,6 @@ async def health_check(
         health_status["checks"]["neo4j"]["status"] = "error"
         health_status["checks"]["neo4j"]["details"] = str(e)
         health_status["status"] = "degraded"
-    
-    # check FAISS connection
-    try:
-        faiss_healthy = await faiss_conn.health_check()
-        if faiss_healthy:
-            health_status["checks"]["faiss"]["status"] = "healthy"
-            health_status["checks"]["faiss"]["details"] = f"Vector store available at {faiss_conn.vector_store_path}"
-        else:
-            health_status["checks"]["faiss"]["status"] = "unhealthy"
-            health_status["checks"]["faiss"]["details"] = "Vector store path not accessible"
-            if health_status["status"] == "healthy":
-                health_status["status"] = "degraded"
-
-    except Exception as e:
-        health_status["checks"]["faiss"]["status"] = "error"
-        health_status["checks"]["faiss"]["details"] = str(e)
-        if health_status["status"] == "healthy":
-            health_status["status"] = "degraded"
     
     return health_status
 
@@ -204,7 +183,7 @@ async def build_vector_database(
     if not user_id:
         raise HTTPException(status_code=400, detail="User ID is required")
 
-    logger.info(f"🔨 Building vector database for user: {user_id} with {len(files)} files")
+    logger.info(f"--- Building vector database for user: {user_id} with {len(files)} files")
     
     try:
         if not files:

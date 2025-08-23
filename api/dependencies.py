@@ -6,10 +6,7 @@ from neo4j import GraphDatabase
 from dotenv import load_dotenv
 load_dotenv()
 
-# Placeholder imports - will be replaced with actual implementations
-# from core.kg_manager import KGManager
-# from core.vector_manager import VectorManager  
-# from core.hybrid_search import HybridSearch
+from core.vector_manager import VectorManager
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +53,7 @@ class Neo4jConnection:
                 logger.error("Neo4j driver not initialized")
                 return False
                 
-            # Test connection with a simple query
+            # simple query to check cnx
             with self.driver.session() as session:
                 logger.info("Neo4j session created, testing query...")
                 result = session.run("RETURN 1 AS test")
@@ -81,10 +78,10 @@ class FAISSConnection:
             return
             
         try:
-            # Ensure vector store directory exists
+            # ensure base vector store directory exists
             os.makedirs(self.vector_store_path, exist_ok=True)
 
-            logger.info(f"FAISS vector store path: {self.vector_store_path}")
+            logger.info(f"FAISS vector store base path: {self.vector_store_path}")
             self._initialized = True
             logger.info("FAISS connection ready")
             
@@ -95,14 +92,8 @@ class FAISSConnection:
                 detail="Vector store initialization failed"
             )
     
-    async def health_check(self) -> bool:
-        try:
-            return os.path.exists(self.vector_store_path)
-        except Exception as e:
-            logger.error(f"FAISS health check failed: {e}")
-            return False
 
-# Global connection instances
+# global connection instances
 _neo4j_connection: Optional[Neo4jConnection] = None
 _faiss_connection: Optional[FAISSConnection] = None
 
@@ -179,72 +170,12 @@ class MockKGManager:
     
     async def clear_graph(self, user_id: str) -> dict:
         """Mock graph clearing."""
-        logger.info(f"🗑️ [MOCK] Clearing KG for user {user_id}")
+        logger.info(f"[MOCK] Clearing KG for user {user_id}")
         return {
             "user_id": user_id,
             "deleted": True,
             "items_removed": 75,
             "message": "Mock graph cleared",
-            "deleted_at": "2025-08-23T10:00:00Z"
-        }
-
-class MockVectorManager:
-    """Mock Vector Manager for Phase 1 - will be replaced with real implementation."""
-    
-    def __init__(self, faiss_conn: FAISSConnection):
-        self.faiss_conn = faiss_conn
-    
-    async def build_vector_store_from_uploads(self, user_id: str, uploaded_files: list, force_rebuild: bool = False) -> dict:
-        """Mock vector store building from uploaded files."""
-        file_names = [f.filename for f in uploaded_files]
-        logger.info(f"🔨 [MOCK] Building vector store for user {user_id} from uploads: {file_names}")
-        return {
-            "user_id": user_id,
-            "status": "success",
-            "chunks_created": 200 * len(uploaded_files),
-            "documents_processed": len(uploaded_files),
-            "documents_failed": 0,
-            "vector_dimension": 1536,
-            "processing_time_seconds": 1.8,
-            "message": f"Mock vector store built from {len(uploaded_files)} uploaded files",
-            "created_at": "2025-08-23T10:00:00Z"
-        }
-    
-    async def build_vector_store_from_paths(self, user_id: str, document_paths: list, force_rebuild: bool = False) -> dict:
-        """Mock vector store building from document paths."""
-        logger.info(f"🔨 [MOCK] Building vector store for user {user_id} from paths: {document_paths}")
-        return {
-            "user_id": user_id,
-            "status": "success",
-            "chunks_created": 200 * len(document_paths),
-            "documents_processed": len(document_paths),
-            "documents_failed": 0,
-            "vector_dimension": 1536,
-            "processing_time_seconds": 1.8,
-            "message": f"Mock vector store built from {len(document_paths)} document paths",
-            "created_at": "2025-08-23T10:00:00Z"
-        }
-    
-    async def get_status(self, user_id: str) -> dict:
-        """Mock status check."""
-        return {
-            "user_id": user_id,
-            "exists": True,
-            "last_updated": "2025-08-23T10:00:00Z",
-            "document_count": 5,
-            "total_size": 200,
-            "health_status": "healthy",
-            "details": {"chunks": 200, "dimension": 1536}
-        }
-    
-    async def clear_vector_store(self, user_id: str) -> dict:
-        """Mock vector store clearing."""
-        logger.info(f"🗑️ [MOCK] Clearing vector store for user {user_id}")
-        return {
-            "user_id": user_id,
-            "deleted": True,
-            "items_removed": 200,
-            "message": "Mock vector store cleared",
             "deleted_at": "2025-08-23T10:00:00Z"
         }
 
@@ -294,9 +225,9 @@ async def get_kg_manager(
 
 async def get_vector_manager(
     faiss_conn: FAISSConnection = Depends(get_faiss_connection)
-) -> MockVectorManager:
+) -> VectorManager:
 
-    return MockVectorManager(faiss_conn)
+    return VectorManager(base_path=faiss_conn.vector_store_path)
 
 async def get_hybrid_search() -> MockHybridSearch:
 

@@ -16,6 +16,7 @@ hf download ds4sd/docling-layout-old --local-dir ~/.cache/huggingface/hub/models
 
 nohup python -m uvicorn api.main:app --host 0.0.0.0 --port 8000
 
+pkill -f uvicorn
 
 
 # File Upload Methods

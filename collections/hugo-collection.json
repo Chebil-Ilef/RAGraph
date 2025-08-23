@@ -16,8 +16,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{local_url}}/health",
-              "host": ["{{local_url}}"],
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
               "path": ["health"]
             },
             "description": "Check system health including Neo4j and FAISS connections"
@@ -57,8 +57,8 @@
               ]
             },
             "url": {
-              "raw": "{{local_url}}/kg/build",
-              "host": ["{{local_url}}"],
+              "raw": "{{base_url}}/kg/build",
+              "host": ["{{base_url}}"],
               "path": ["kg", "build"]
             },
             "description": "Build knowledge graph from uploaded PDF files"
@@ -80,8 +80,8 @@
               "raw": "{\n  \"user_id\": \"test_user_123\"\n}"
             },
             "url": {
-              "raw": "{{local_url}}/kg/status",
-              "host": ["{{local_url}}"],
+              "raw": "{{base_url}}/kg/status",
+              "host": ["{{base_url}}"],
               "path": ["kg", "status"]
             },
             "description": "Get knowledge graph status for a user"
@@ -103,8 +103,8 @@
               "raw": "{\n  \"user_id\": \"test_user_123\"\n}"
             },
             "url": {
-              "raw": "{{local_url}}/kg/clear",
-              "host": ["{{local_url}}"],
+              "raw": "{{base_url}}/kg/clear",
+              "host": ["{{base_url}}"],
               "path": ["kg", "clear"]
             },
             "description": "Clear all knowledge graph data for a user"
@@ -144,8 +144,8 @@
               ]
             },
             "url": {
-              "raw": "{{local_url}}/vectordb/build",
-              "host": ["{{local_url}}"],
+              "raw": "{{base_url}}/vectordb/build",
+              "host": ["{{base_url}}"],
               "path": ["vectordb", "build"]
             },
             "description": "Build vector database from uploaded PDF files"
@@ -167,8 +167,8 @@
               "raw": "{\n  \"user_id\": \"test_user_123\"\n}"
             },
             "url": {
-              "raw": "{{local_url}}/vectordb/status",
-              "host": ["{{local_url}}"],
+              "raw": "{{base_url}}/vectordb/status",
+              "host": ["{{base_url}}"],
               "path": ["vectordb", "status"]
             },
             "description": "Get vector database status for a user"
@@ -190,8 +190,8 @@
               "raw": "{\n  \"user_id\": \"test_user_123\"\n}"
             },
             "url": {
-              "raw": "{{local_url}}/vectordb/clear",
-              "host": ["{{local_url}}"],
+              "raw": "{{base_url}}/vectordb/clear",
+              "host": ["{{base_url}}"],
               "path": ["vectordb", "clear"]
             },
             "description": "Clear all vector database data for a user"
@@ -218,8 +218,8 @@
               "raw": "{\n  \"user_id\": \"test_user_123\",\n  \"query\": \"What are the main findings about artificial intelligence?\",\n  \"limit\": 10,\n  \"include_kg\": true,\n  \"include_vector\": true,\n  \"rerank\": true\n}"
             },
             "url": {
-              "raw": "{{local_url}}/query",
-              "host": ["{{local_url}}"],
+              "raw": "{{base_url}}/query",
+              "host": ["{{base_url}}"],
               "path": ["query"]
             },
             "description": "Perform hybrid search across both KG and vector database"
@@ -241,8 +241,8 @@
               "raw": "{\n  \"user_id\": \"test_user_123\",\n  \"query\": \"Show me entities related to machine learning\",\n  \"limit\": 5,\n  \"include_kg\": true,\n  \"include_vector\": false,\n  \"rerank\": false\n}"
             },
             "url": {
-              "raw": "{{local_url}}/query",
-              "host": ["{{local_url}}"],
+              "raw": "{{base_url}}/query",
+              "host": ["{{base_url}}"],
               "path": ["query"]
             },
             "description": "Search only in knowledge graph"
@@ -264,8 +264,8 @@
               "raw": "{\n  \"user_id\": \"test_user_123\",\n  \"query\": \"Find similar document chunks about neural networks\",\n  \"limit\": 15,\n  \"include_kg\": false,\n  \"include_vector\": true,\n  \"rerank\": true\n}"
             },
             "url": {
-              "raw": "{{local_url}}/query",
-              "host": ["{{local_url}}"],
+              "raw": "{{base_url}}/query",
+              "host": ["{{base_url}}"],
               "path": ["query"]
             },
             "description": "Search only in vector database"
@@ -286,8 +286,8 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{local_url}}/health",
-                  "host": ["{{local_url}}"],
+                  "raw": "{{base_url}}/health",
+                  "host": ["{{base_url}}"],
                   "path": ["health"]
                 }
               }
@@ -317,8 +317,8 @@
                   ]
                 },
                 "url": {
-                  "raw": "{{local_url}}/kg/build",
-                  "host": ["{{local_url}}"],
+                  "raw": "{{base_url}}/kg/build",
+                  "host": ["{{base_url}}"],
                   "path": ["kg", "build"]
                 }
               }
@@ -348,8 +348,8 @@
                   ]
                 },
                 "url": {
-                  "raw": "{{local_url}}/vectordb/build",
-                  "host": ["{{local_url}}"],
+                  "raw": "{{base_url}}/vectordb/build",
+                  "host": ["{{base_url}}"],
                   "path": ["vectordb", "build"]
                 }
               }
@@ -369,8 +369,8 @@
                   "raw": "{\n  \"user_id\": \"workflow_user\"\n}"
                 },
                 "url": {
-                  "raw": "{{local_url}}/kg/status",
-                  "host": ["{{local_url}}"],
+                  "raw": "{{base_url}}/kg/status",
+                  "host": ["{{base_url}}"],
                   "path": ["kg", "status"]
                 }
               }
@@ -390,8 +390,8 @@
                   "raw": "{\n  \"user_id\": \"workflow_user\"\n}"
                 },
                 "url": {
-                  "raw": "{{local_url}}/vectordb/status",
-                  "host": ["{{local_url}}"],
+                  "raw": "{{base_url}}/vectordb/status",
+                  "host": ["{{base_url}}"],
                   "path": ["vectordb", "status"]
                 }
               }
@@ -411,8 +411,8 @@
                   "raw": "{\n  \"user_id\": \"workflow_user\",\n  \"query\": \"What are the key insights from the uploaded documents?\",\n  \"limit\": 10,\n  \"include_kg\": true,\n  \"include_vector\": true,\n  \"rerank\": true\n}"
                 },
                 "url": {
-                  "raw": "{{local_url}}/query",
-                  "host": ["{{local_url}}"],
+                  "raw": "{{base_url}}/query",
+                  "host": ["{{base_url}}"],
                   "path": ["query"]
                 }
               }
@@ -424,7 +424,7 @@
   ],
   "variable": [
     {
-      "key": "local_url",
+      "key": "base_url",
       "value": "http://localhost:8000",
       "description": "Base URL for HUGO API"
     },
