@@ -124,9 +124,7 @@ class DocumentProcessor:
             
             logger.info(f"Docling extracted {len(raw_text)} characters from {os.path.basename(path)}")
             
-            with open("logs/docling_extracted_text.txt", "w", encoding="utf-8") as f:
-                f.write(raw_text)
-            
+
             return raw_text
             
         except torch.cuda.OutOfMemoryError as gpu_error:
@@ -180,9 +178,6 @@ class DocumentProcessor:
 
         combined = "\n".join(all_text)
         logger.info(f"pdfplumber extracted {len(combined)} characters from {os.path.basename(path)}")
-        
-        with open("logs/pdfplumber_extracted_text.txt", "w", encoding="utf-8") as f:
-            f.write(combined)
 
         return combined
 
