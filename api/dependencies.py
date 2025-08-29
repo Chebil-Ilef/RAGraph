@@ -71,7 +71,7 @@ class Neo4jConnection:
 class FAISSConnection:
     
     def __init__(self):
-        self.vector_store_path = "vector_store"
+        self.vector_store_path = "data/vector_store"
         self._initialized = False
     
     async def initialize(self):
@@ -222,7 +222,7 @@ async def get_kg_manager(
     neo4j_conn: Neo4jConnection = Depends(get_neo4j_connection)
 ) -> KnowledgeGraphManager:
     """Get KnowledgeGraphManager instance with proper Neo4j connection."""
-    return KnowledgeGraphManager(base_path="kg_store")
+    return KnowledgeGraphManager(base_path="data/kg_store")
 
 async def get_vector_manager(
     faiss_conn: FAISSConnection = Depends(get_faiss_connection)

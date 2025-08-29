@@ -9,9 +9,9 @@ files/
 
 logs/
 
-vector_store/
+data/vector_store/
 
-kg_store/
+data/kg_store/
 
 nohup.out
 

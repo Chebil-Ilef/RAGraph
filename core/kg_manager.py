@@ -3,14 +3,12 @@ import logging
 import hashlib
 import json
 import tempfile
-import asyncio
 from typing import List, Dict, Any
 from datetime import datetime, timezone
 from fastapi import UploadFile, HTTPException
 
 from graphiti_core import Graphiti
 from graphiti_core.nodes import EpisodeType
-from graphiti_core.search.search_config_recipes import NODE_HYBRID_SEARCH_RRF
 from graphiti_core.llm_client.config import LLMConfig
 from graphiti_core.llm_client.openai_client import OpenAIClient
 from graphiti_core.embedder.openai import OpenAIEmbedder, OpenAIEmbedderConfig
@@ -31,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 class KnowledgeGraphManager:
     
-    def __init__(self, base_path: str = "kg_store"):
+    def __init__(self, base_path: str = "data/kg_store"):
         self.base_path = base_path
         self.document_processor = DocumentProcessor()
         

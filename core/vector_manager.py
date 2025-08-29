@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 class VectorManager:
     
-    def __init__(self, base_path: str = "vector_store"):
+    def __init__(self, base_path: str = "data/vector_store"):
         self.base_path = base_path
         self.document_processor = DocumentProcessor()
         
